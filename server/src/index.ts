@@ -55,13 +55,13 @@ passport.use(new GoogleStrategy(
   {
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "http://localhost:3000/google-auth/callback",
+    callbackURL: "http://localhost:5000/google-auth/callback",
     scope: ["profile", "email"]
   },
   async (accessToken: string, refreshToken: string, profile: any, done: any) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
-      console.log(user)
+
       if (!user) {
         user = await User.create({
           googleId: profile.id,
@@ -102,7 +102,6 @@ passport.deserializeUser(async (id: string, done) => {
 // Connect to the database
 try {
   connectDB();
-  console.log('Database connected successfully');
 } catch (error) {
   console.error('Error connecting to the database:', error);
   process.exit(1); 
@@ -127,13 +126,12 @@ app.get('/google',
 
 app.get('/google-auth/callback', 
   passport.authenticate('google', { 
-    failureRedirect: '/signup',
+    failureRedirect: 'http://localhost:3000/signup',
     session: true
   }), async (req: Request, res: Response) => {
     try {
       const user = req.user as IUser;
-      console.log(user)
-      console.log('it wokrrs')
+
       
       // Generate JWT token for Google-authenticated users
       const token = jwt.sign(
@@ -149,8 +147,7 @@ app.get('/google-auth/callback',
       });
 
       // Redirect to frontend with success
-      console.log("redirecting")
-      res.redirect(`/`);
+      res.redirect(`http://localhost:3000/`);
     } catch (error) {
       console.error('Error in Google callback:', error);
       res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
@@ -158,16 +155,72 @@ app.get('/google-auth/callback',
   }
 );
 
+
+// google authentication login
+
+
+app.get('/google_login', passport.authenticate('google', {
+  scope: ['profile', 'email'],
+}));
+
+app.get(
+  '/google_login/callback',
+  passport.authenticate('google', { failureRedirect: '/login', session: true }),
+  async (req:Request, res:Response) => {
+    try {
+      const googleUser = req.user as any;
+
+      // Simulate a database check for the user
+      const existingUser = await User.findOne({ googleId: googleUser.googleId });
+
+      let user;
+
+      if (existingUser) {
+        // User already exists in the database
+        user = existingUser;
+      } else {
+        // User doesn't exist, create a new one
+        user = new User({
+          googleId: googleUser.googleId,
+          email: googleUser.email,
+          name: googleUser.name,
+          picture: googleUser.picture,
+        });
+        await user.save();
+      }
+
+      // Generate JWT for the user
+      const token = jwt.sign(
+        { id: user.googleId, email: user.email },
+        process.env.ACCESS_TOKEN_SECRET || 'default_secret',
+        { expiresIn: '1h' }
+      );
+
+      // Set JWT as a cookie
+      res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      });
+
+      // Redirect to frontend
+      res.redirect(process.env.CLIENT_URL || 'http://localhost:3000');
+    } catch (error) {
+      console.error('Google Login Error:', error);
+      res.redirect('/login?error=auth_failed');
+    }
+  }
+);
+
+
+
 // Logout route
 app.get('/logout', (req: Request, res: Response) => {
   res.clearCookie('authToken');
   req.logout(() => {
-    res.redirect(process.env.CLIENT_URL || 'http://localhost:3000');
+    res.redirect('http://localhost:3000/login');
   });
 });
-
-
-
 
 
 

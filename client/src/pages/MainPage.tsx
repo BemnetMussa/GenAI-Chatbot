@@ -54,7 +54,8 @@ const MainPage = () => {
 
         <div className="mt-auto">
           <hr className="pb-6  border-white opacity-40"/>
-          <button className="flex m-auto gap-6 text-xl pb-5 text-white">
+          <button onClick={() => window.location.href = 'http://localhost:5000/logout'}
+                  className="flex m-auto gap-6 text-xl pb-5 text-white">
             <span>Log out</span>
              <svg
                 xmlns="http://www.w3.org/2000/svg"

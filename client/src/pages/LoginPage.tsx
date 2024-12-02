@@ -10,7 +10,7 @@ const LoginPage = () => {
 
     
 
-    const loginUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    const loginUser = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
 
         if (!email || !password) {
@@ -30,7 +30,6 @@ const LoginPage = () => {
             if (response.ok) {
                 const data = await response.json();
 
-                console.log(data.userId)
                 if (data.userId) {
                     navigate(`/user/${data.userId}`);
                 } else {
@@ -48,6 +47,7 @@ const LoginPage = () => {
         }
     };
 
+
     return (
         <div className="flex h-screen">
             <div className="w-1/2 bg-blue-600 p-8 flex items-center justify-center">
@@ -59,7 +59,9 @@ const LoginPage = () => {
                     </p>
                 </div>
 
-                <button className="w-full bg-white text-gray-600 py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50">
+                <button 
+                    onClick={() => window.location.href = 'http://localhost:5000/google_login'}
+                    className="w-full bg-white text-gray-600 py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50">
                     <img 
                     src="https://www.svgrepo.com/show/475656/google-color.svg"
                     alt="Google logo"

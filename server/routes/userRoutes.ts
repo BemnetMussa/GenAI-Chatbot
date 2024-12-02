@@ -108,6 +108,7 @@ router.get('/protected', authMiddleware, (req: Request, res: Response) => {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
+
   res.json({ message: 'User authenticated', userId: req.user.id });
 });
 
@@ -124,6 +125,7 @@ router.get('/user/:id', async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error retrieving user details', error });
   }
 });
+
 
 
 export { router };

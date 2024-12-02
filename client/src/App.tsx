@@ -9,7 +9,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
-  
+
   useEffect(() => {
 
     const checkAuthCookie = async () => {
@@ -19,8 +19,9 @@ function App() {
           credentials: 'include', // Include cookies
       });
 
-      console.log("helllloooo")
-      console.log(response)
+        console.log("app.tsx ")
+        console.log(response)
+        console.log(response.ok)
         if (response.ok) {
             const data = await response.json();
             console.log(data)
