@@ -1,4 +1,6 @@
+
 import React, { useState, FormEvent, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 
 interface Message {
   request: string;
@@ -10,26 +12,78 @@ interface Props {
 }
 
 const ChatContainer = (props: Props) => {
+  const { id: userId } = useParams(); // Get userId from URL
   const [question, setQuestion] = useState('');
   const [conversations, setConversations] = useState<Message[]>([
-    { request: "hi", response: "hey there" }
+    { request: "", response: "" }
   ]);
+
+  const [error, setError] = useState('');
   
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  function submitQuestion(e: FormEvent<HTMLFormElement>) {
+  async function submitQuestion(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!question.trim()) return;
+ 
+    try{
+        if (!question.trim()) return;
 
-    // Add new message to conversations
-    const newMessage = {
-      request: question,
-      response: "AI responded your message" // response with actual AI response
-    };
+        const response = await fetch('http://localhost:5000/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ question, userId}),
 
-    setConversations([...conversations, newMessage]);
+        });
+
+        if (!response.ok) { setError('Error occured, Try again later'); return}
+
+        const data = await response.json();
+        
+        const newChat = {
+          request: question, 
+          response: data.aiResponse
+        };
+
+        setConversations([...conversations, newChat]);
+        setError('')
+        
+  } catch (error) {
+      console.log(error)
+      setError('Error while fetching')
+    }
+
     setQuestion('');
   }
+
+   // Load previous conversations when component mounts
+  useEffect(() => {
+    const loadConversations = async () => {
+      if (!userId) {
+        setError('User ID is missing');
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:5000/chat/history/${userId}`, {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.conversations && Array.isArray(data.conversations)) {
+            setConversations(data.conversations);
+          }
+        } else {
+          setError('Failed to load chat history');
+        }
+      } catch (error) {
+        console.error('Error loading conversations:', error);
+        setError('Error loading conversation history');
+      }
+    };
+
+    loadConversations();
+  }, [userId]);
 
   // Scroll to the bottom when conversations update
   useEffect(() => {
@@ -60,6 +114,8 @@ const ChatContainer = (props: Props) => {
               </div>
             ))}
             <div ref={chatEndRef} /> {/* Scroll anchor */}
+
+           {error && <p className="error">{error}</p>}
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import express, { Request, Response } from 'express';
 import { Document } from 'mongoose';
 import jwt from 'jsonwebtoken';
+import ChatHistory from '../models/ChatHistory';
 
 
 dotenv.config();
@@ -226,7 +227,96 @@ app.get('/logout', (req: Request, res: Response) => {
 
 
 
+app.post('/chat', async (req: Request, res: Response) => {
+  const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+  const genAI = new GoogleGenerativeAI(process.env.gemini_API_ID);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const { question: userPrompt, userId} = req.body
+
+  if (!userPrompt) {
+      return res.status(400).json({ error: "Question is required" });
+    }
+
+  try {
+    
+    const result = await model.generateContent(userPrompt);
+
+    ChatHistory.findOne({ userId }).then(chatHistory => {
+      if (!chatHistory) {
+        // Create a new chat history document if it doesn't exist
+        const newChatHistory = new ChatHistory({
+          userId,
+          messages: [
+            { content: userPrompt, sender: "user", timestamp: new Date() }, // User's message
+            { content: result.response.text(), sender: "assistant", timestamp: new Date() } // Assistant's response
+          ]
+        });
+        newChatHistory.save();
+      } else {
+        // Update the existing chat history
+        chatHistory.messages.push(
+          { content: userPrompt, sender: "user", timestamp: new Date() }, // User's message
+          { content: result.response.text(), sender: "assistant", timestamp: new Date() } // Assistant's response
+        );
+        chatHistory.save();
+      }
+    });
+
+
+    res.json({aiResponse: result.response.text()})
+
+  } catch (error) {
+    console.log(error)
+    res.status(402).json({error: "an error occured try again"})
+    
+  }
+
+});
+
+
+app.get('/chat/history/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Find chat history for the user
+    const chatHistory = await ChatHistory.findOne({ userId });
+
+    if (!chatHistory) {
+      return res.json({ 
+        conversations: [] 
+      });
+    }
+
+    // Format messages into conversations array
+    const conversations = [];
+    for (let i = 0; i < chatHistory.messages.length; i += 2) {
+      if (chatHistory.messages[i] && chatHistory.messages[i + 1]) {
+        conversations.push({
+          request: chatHistory.messages[i].content,
+          response: chatHistory.messages[i + 1].content
+        });
+      }
+    }
+
+    return res.json({
+      conversations
+    });
+
+  } catch (error) {
+    console.error('Error fetching chat history:', error);
+    return res.status(500).json({ error: 'Failed to fetch chat history' });
+  }
+});
+
+
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
