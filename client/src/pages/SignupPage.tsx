@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const SignupPage = () => {
@@ -61,7 +61,7 @@ const SignupPage = () => {
               alt="Google logo"
               className="w-5 h-5"
             />
-            Sign in with Google
+            Sign up with Google
           </button>
 
           <div className="flex items-center gap-2">

@@ -283,7 +283,7 @@ app.post('/chat', async (req: Request, res: Response) => {
 
   console.log('Received request:', { userPrompt, userId, messageId });
 
-  if (!userPrompt || !userId || !messageId) {
+  if (!userPrompt || !userId ) {
     return res.status(400).json({ error: "Question, User ID, and Message ID are required" });
   }
 
@@ -296,6 +296,7 @@ app.post('/chat', async (req: Request, res: Response) => {
 
     // Find the user's chat history
     let chatHistory = await ChatHistory.findOne({ userId });
+    console.log(chatHistory)
 
     if (!chatHistory) {
       // Create new chat history if none exists
@@ -310,28 +311,30 @@ app.post('/chat', async (req: Request, res: Response) => {
         }]
       });
     } else {
+
       // Find the conversation that contains the messageId
       let messageAdded = false
 
       // Iterate through each conversation objects
-      chatHistory.conversations.map((conv) => {
-        if (conv._id){
-        if (conv._id.toString() === messageId.toString()) {
-          // Add the new messages at the end of the conversation
-          conv.messages.push(
-            { content: userPrompt, sender: "user", timestamp: new Date() },
-            { content: assistantResponse, sender: "assistant", timestamp: new Date() }
-          );
-          messageAdded = true;
-        }}
-      })
-      
+      if (messageId){
+        chatHistory.conversations.map((conv) => {
+          if (conv._id){
+          if (conv._id.toString() === messageId.toString()) {
+            // Add the new messages at the end of the conversation
+            conv.messages.push(
+              { content: userPrompt, sender: "user", timestamp: new Date() },
+              { content: assistantResponse, sender: "assistant", timestamp: new Date() }
+            );
+            messageAdded = true;
+          }}
+        })
+      }
 
       // If messageId was not found, we create a new conversation
       if (!messageAdded) {
         console.log('Message ID not found, creating new conversation...');
         chatHistory.conversations.push({
-          _id: new mongoose.Types.ObjectId(),
+         _id: new mongoose.Types.ObjectId(),
           messages: [
             { content: userPrompt, sender: "user", timestamp: new Date() },
             { content: assistantResponse, sender: "assistant", timestamp: new Date() }
@@ -414,6 +417,7 @@ app.post('/chat/new/:id', async (req: Request, res: Response) => {
     res.status(201).json({
       message: 'New conversation created successfully',
       conversation: newConversation,
+      messageId: newConversation._id,
       name: user ? user.name : ''
     });
 
@@ -457,7 +461,7 @@ app.post('/user/history/:id', async (req: Request, res: Response) => {
     };
   
 
-    console.log(chatMessage)
+
 
     if (Object.keys(chatMessage).length === 0) {
       return res.status(404).json({ 
@@ -467,7 +471,6 @@ app.post('/user/history/:id', async (req: Request, res: Response) => {
     }
 
 
-    console.log(chatMessage)
     // Respond with standardized success format
     return res.status(200).json({
       status: 'success',

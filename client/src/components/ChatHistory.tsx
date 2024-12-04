@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FormEvent } from 'react';
+
 
 interface Message {
   content: string;
@@ -15,6 +15,7 @@ interface Conversation {
 
 interface ChatHistoryProps {
   onMessageIdChange: (messageId: string) => void;
+ 
 }
 
 
@@ -27,6 +28,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onMessageIdChange }) => {
 
 
   useEffect(() => {      
+   
     const fetchChatHistory = async () => {
       try {
         if (!userId) {
@@ -59,6 +61,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onMessageIdChange }) => {
   
 
   const handleLogout = async () => {
+    
+
     try {
       const response = await fetch('http://localhost:5000/logout', {
     
@@ -66,25 +70,39 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onMessageIdChange }) => {
       });
       if (response.ok) {
         navigate('/login');
+
       }
+      
+      
     } catch (error) {
       console.error('Logout error:', error);
+      window.location.reload();
     }
   };
 
-  const handleNewConversation = async () => {
-   const respond =  await fetch(`http://localhost:5000/chat/new/${userId}`, {
-        method: 'POST',
-        credentials: 'include',
+const handleNewConversation = async () => {
+  try {
+    const respond = await fetch(`http://localhost:5000/chat/new/${userId}`, {
+      method: 'POST',
+      credentials: 'include',
     });
 
-    const data = respond.json();
-    console.log(data)
-  };
+    if (!respond.ok) {
+      throw new Error('Failed to create new conversation');
+    }
 
+    const data = await respond.json();  // Await the json response
+   
+    onMessageIdChange(data.messageId)
+
+  } catch (error) {
+    console.error('Error creating new conversation:', error);
+  }
+};
 
 
     const handleSend = async (messageId: string) => {
+      
         console.log("Selected message ID:", messageId);
         
 
@@ -93,13 +111,15 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onMessageIdChange }) => {
 
 
   return (
+   
+  
     <div className="w-64 bg-blue-600 p-4 flex flex-col h-screen">
       <div className="flex-1">
         <div className="text-white text-lg font-semibold mb-8">GenAI</div>
         <hr className="pb-6 border-white opacity-40" />
         <div className="pb-6 text-white/50">Chat history</div>
 
-        <div className="space-y-4 pl-2 overflow-y-auto max-h-[calc(100vh-250px)]">
+        <div className="space-y-4 pl-2 overflow-y-auto max-h-[calc(100vh-320px)]">
           {loading ? (
             <div className="text-white/60">Loading...</div>
           ) : error ? (
@@ -107,33 +127,29 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onMessageIdChange }) => {
           ) : chatHistory.length === 0 ? (
             <div className="text-white/60">No chat history yet</div>
           ) : (
-            chatHistory.map((conversation, index) => (
-              <div key={index} className="text-white/60">
-             
-                  <div className="pl-4 space-y-2" >
-                    
-                      <div 
+                                  
+            chatHistory.slice().reverse().map((conversation, index) =>
+                conversation.messages.length > 0 ? (
+                <div key={index} className="text-white/60">
+                    <div className="pl-4 space-y-2">
+                    <div
                         onClick={() =>
-                            handleSend(
-                                conversation.messages.length > 0 ? conversation._id : ''
-                            )
+                        handleSend(conversation._id) // Pass the conversation ID directly
                         }
-                        className={`truncate`}>
-                        {conversation.messages.length > 0 
-                        ? conversation.messages[0].content // Access the content of the first message
-                        : "No messages available"}
-                        
-                      </div>
-                
-                  </div>
-          
-              </div>
-            ))
-          )}
+                        className="truncate"
+                    >
+                        {conversation.messages[0].content} {/* Display the first message content */}
+                    </div>
+                    </div>
+                </div>
+                ) : null // If no messages, render nothing
+            )
+        )}
         </div>
       </div>
 
-      <div className="mt-auto">
+      <div className="mt-auto mt-5">
+
         <hr className="pb-6 border-white opacity-40" />
         <button
           onClick={handleNewConversation}
@@ -141,6 +157,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onMessageIdChange }) => {
         >
           Start New Conversation
         </button>
+
+        <hr className="pb-6 border-white opacity-40" />
         <button
           onClick={handleLogout}
           className="flex m-auto gap-6 text-xl pb-5 text-white hover:text-white/80 transition-colors"

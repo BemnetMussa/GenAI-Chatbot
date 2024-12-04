@@ -106,17 +106,6 @@ const LoginPage = () => {
                         />
                     </div>
 
-                    {/* using catches will be implemented after the project is almost done */ }
-                    {/* <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="keepLoggedIn"
-                            className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-0"
-                        />
-                        <label htmlFor="keepLoggedIn" className="ml-2 text-sm text-white/80">
-                            Keep me logged in
-                        </label>
-                    </div> */}
     "
                     <button type="submit" className="w-full bg-blue-800 text-white py-2 px-4 rounded-lg hover:bg-blue-900 transition-colors">
                         Log in
@@ -128,7 +117,7 @@ const LoginPage = () => {
                 <p className="text-sm text-white/80 text-center">
                     creat an account{' '}
                     <Link to="/signup" className="text-white hover:underline">
-                    Login
+                    Signup
                     </Link>
                 </p>
                 </form>

@@ -9,11 +9,10 @@ const MainPage = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [error, setError] = useState('');
   const [messageId, setMessageId] = useState<string | null>(null);
-  const [showWelcome, setShowWelcome] = useState(true);
+ 
 
   const handleMessageId = (id: string) => {
     setMessageId(id);
-    setShowWelcome(false); // Hide welcome message when a message is selected
     console.log('Received messageId:', id);
   };
 
@@ -32,7 +31,7 @@ const MainPage = () => {
           
           const newChatData = await newChatResponse.json();
           setUserName(newChatData.name)
-          setShowWelcome(true); // Show welcome message for new chat
+     
           return;
         }
 
@@ -53,7 +52,7 @@ const MainPage = () => {
         const historyData = await historyResponse.json();
         console.log(historyData.data.messages)
         setChatHistory(historyData.data.messages);
-        setShowWelcome(false); // Hide welcome message when showing conversation
+   
       } catch (error) {
         console.error('Error:', error);
         setError('An error occurred');
@@ -100,18 +99,10 @@ const MainPage = () => {
           </div>
         </div>
 
-        <div className="flex-1">
-          {showWelcome ? (
-            <>
-            <div className="h-full flex items-center justify-center">
-              <h1 className="text-4xl font-bold text-gray-700">
-                Hi {userName}, how can I help you today?
-              </h1>
-            </div>
-            </>
-          ) : (
-            <ChatContainer chatHistory={chatHistory} messageId={messageId} />
-          )}
+        <div className="flex-1 ">
+      
+            <ChatContainer userName={userName}  chatHistory={chatHistory} messageId={messageId} />
+          
         </div>
       </div>
     </div>
