@@ -12,6 +12,11 @@ import express, { Request, Response } from 'express';
 import { Document } from 'mongoose';
 import jwt from 'jsonwebtoken';
 import ChatHistory from '../models/ChatHistory';
+import { LoginTicket } from 'google-auth-library';
+import mongoose from 'mongoose';
+import { isValidObjectId } from 'mongoose';
+import { Navigate } from 'react-router-dom';
+
 
 
 dotenv.config();
@@ -24,6 +29,41 @@ interface IUser extends Document {
   googleId?: string;
   picture?: string;
 }
+
+
+interface ChatMessage {
+  _id: string;
+  // Add other message properties as needed
+}
+
+interface ChatHistoryDocument {
+  userId: string;
+  conversations: ChatMessage[];
+}
+
+
+// IMessage interface
+interface IMessage extends Document {
+  content: string;
+  sender: 'user' | 'assistant';   // Who sent the message ('user' or 'assistant')
+  timestamp: Date;
+}
+
+
+interface IConversation {
+  _id: mongoose.Types.ObjectId;  // Use ObjectId here
+  messages: IMessage[];
+}
+
+// IChatHistory interface
+export interface IChatHistory extends Document {
+  userId: mongoose.Types.ObjectId;        // Reference to User's ObjectId
+  conversations: IConversation[];          // Array of conversations (IConversation[])
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+
 
 
 
@@ -227,91 +267,224 @@ app.get('/logout', (req: Request, res: Response) => {
 
 
 
+
+
+
+
+
+
+
 app.post('/chat', async (req: Request, res: Response) => {
   const { GoogleGenerativeAI } = require("@google/generative-ai");
-
   const genAI = new GoogleGenerativeAI(process.env.gemini_API_ID);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-  const { question: userPrompt, userId} = req.body
 
-  if (!userPrompt) {
-      return res.status(400).json({ error: "Question is required" });
-    }
+  const { question: userPrompt, userId, messageId } = req.body;
 
-  try {
-    
-    const result = await model.generateContent(userPrompt);
+  console.log('Received request:', { userPrompt, userId, messageId });
 
-    ChatHistory.findOne({ userId }).then(chatHistory => {
-      if (!chatHistory) {
-        // Create a new chat history document if it doesn't exist
-        const newChatHistory = new ChatHistory({
-          userId,
-          messages: [
-            { content: userPrompt, sender: "user", timestamp: new Date() }, // User's message
-            { content: result.response.text(), sender: "assistant", timestamp: new Date() } // Assistant's response
-          ]
-        });
-        newChatHistory.save();
-      } else {
-        // Update the existing chat history
-        chatHistory.messages.push(
-          { content: userPrompt, sender: "user", timestamp: new Date() }, // User's message
-          { content: result.response.text(), sender: "assistant", timestamp: new Date() } // Assistant's response
-        );
-        chatHistory.save();
-      }
-    });
-
-
-    res.json({aiResponse: result.response.text()})
-
-  } catch (error) {
-    console.log(error)
-    res.status(402).json({error: "an error occured try again"})
-    
+  if (!userPrompt || !userId || !messageId) {
+    return res.status(400).json({ error: "Question, User ID, and Message ID are required" });
   }
 
+  try {
+    // Generate AI response
+    const result = await model.generateContent(userPrompt);
+    const assistantResponse = result.response.text();
+
+    console.log('AI Response generated:', assistantResponse);
+
+    // Find the user's chat history
+    let chatHistory = await ChatHistory.findOne({ userId });
+
+    if (!chatHistory) {
+      // Create new chat history if none exists
+      console.log('Creating new chat history...');
+      chatHistory = new ChatHistory({
+        userId,
+        conversations: [{
+          messages: [
+            { content: userPrompt, sender: "user", timestamp: new Date() },
+            { content: assistantResponse, sender: "assistant", timestamp: new Date() }
+          ]
+        }]
+      });
+    } else {
+      // Find the conversation that contains the messageId
+      let messageAdded = false
+
+      // Iterate through each conversation objects
+      chatHistory.conversations.map((conv) => {
+        if (conv._id){
+        if (conv._id.toString() === messageId.toString()) {
+          // Add the new messages at the end of the conversation
+          conv.messages.push(
+            { content: userPrompt, sender: "user", timestamp: new Date() },
+            { content: assistantResponse, sender: "assistant", timestamp: new Date() }
+          );
+          messageAdded = true;
+        }}
+      })
+      
+
+      // If messageId was not found, we create a new conversation
+      if (!messageAdded) {
+        console.log('Message ID not found, creating new conversation...');
+        chatHistory.conversations.push({
+          _id: new mongoose.Types.ObjectId(),
+          messages: [
+            { content: userPrompt, sender: "user", timestamp: new Date() },
+            { content: assistantResponse, sender: "assistant", timestamp: new Date() }
+          ]
+        });
+      }
+    }
+
+    // Save the updated chat history
+    const savedChat = await chatHistory.save();
+    console.log('Saved chat history:');
+
+    // Send AI response back to the user
+    res.json({ aiResponse: assistantResponse });
+  } catch (error) {
+    console.error("Error processing chat:", error);
+    if (error instanceof mongoose.Error) {
+      console.error("Mongoose error details:", error);
+    }
+    res.status(500).json({ error: "An error occurred. Please try again." });
+  }
 });
 
 
-app.get('/chat/history/:id', async (req: Request, res: Response) => {
+
+
+
+
+// Route to fetch chat history
+app.get('/chat/history/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  let chatData = await ChatHistory.findOne({ userId });
+
+  if (!chatData) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  return res.json({ conversations: chatData.conversations });
+});
+
+
+
+// Route to create a new conversation
+app.post('/chat/new/:id', async (req: Request, res: Response) => {
+  const { id: userId } = req.params;  
+  const _id = userId;
+  let user = await User.findOne({ _id });
+  if (!user) {
+    console.log('error no user')
+  } else {
+  console.log(user.name)}
+
   try {
-    const userId = req.params.id;
+    // Find the user's chat history
+    let chatHistory = await ChatHistory.findOne({ userId });
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // Find chat history for the user
-    const chatHistory = await ChatHistory.findOne({ userId });
-
+    
+    // If no chat history exists, create one
     if (!chatHistory) {
-      return res.json({ 
-        conversations: [] 
+      chatHistory = new ChatHistory({
+        userId,
+        conversations: [] // Initialize empty conversations array
       });
     }
 
-    // Format messages into conversations array
-    const conversations = [];
-    for (let i = 0; i < chatHistory.messages.length; i += 2) {
-      if (chatHistory.messages[i] && chatHistory.messages[i + 1]) {
-        conversations.push({
-          request: chatHistory.messages[i].content,
-          response: chatHistory.messages[i + 1].content
-        });
-      }
-    }
+    // Create a new conversation (messages array)
+    const newConversation = {
+      _id: new mongoose.Types.ObjectId(), // Generate new ID for the conversation
+      messages: [] // Initialize with empty messages array
+    };
 
-    return res.json({
-      conversations
+    // Add the new conversation to chat history
+    chatHistory.conversations.push(newConversation);
+  
+    // Save changes
+    await chatHistory.save();
+    console.log("created successfully ")
+
+    // Return the newly created conversation
+    res.status(201).json({
+      message: 'New conversation created successfully',
+      conversation: newConversation,
+      name: user ? user.name : ''
     });
 
   } catch (error) {
-    console.error('Error fetching chat history:', error);
-    return res.status(500).json({ error: 'Failed to fetch chat history' });
+    console.error('Error creating new conversation:', error);
+    res.status(500).json({ error: "Error occurred while creating new conversation" });
   }
 });
+
+
+
+
+app.post('/user/history/:id', async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    const { messageId } = req.body;
+    console.log("user history is loaded")
+
+   try {
+  
+    // Find the user's chat history with lean() for better performance
+    const chatHistory = await ChatHistory.findOne({ 
+      userId 
+    }).lean<ChatHistoryDocument>();
+
+    if (!chatHistory) {
+      return res.status(404).json({ 
+        status: 'error',
+        message: 'Chat history not found for the user'
+      });
+    }
+   
+
+    let chatMessage = {}
+
+    for (let i = 0; i < chatHistory.conversations.length; i++) {
+      console.log(chatHistory.conversations[i]._id );
+      console.log(messageId);
+      if (chatHistory.conversations[i]._id == messageId){
+        chatMessage = chatHistory.conversations[i]
+      }
+    };
+  
+
+    console.log(chatMessage)
+
+    if (Object.keys(chatMessage).length === 0) {
+      return res.status(404).json({ 
+        status: 'error',  
+        message: 'Message not found in chat history'
+      });
+    }
+
+
+    console.log(chatMessage)
+    // Respond with standardized success format
+    return res.status(200).json({
+      status: 'success',
+      data: chatMessage
+    });
+
+  } catch (error) {
+    console.error('Error retrieving chat message:', error);
+    
+    // Return a safe error response
+    return res.status(500).json({ 
+      status: 'error',
+      message: 'An error occurred while retrieving the chat message',
+    });
+  } 
+});
+
 
 
 
@@ -319,4 +492,5 @@ app.get('/chat/history/:id', async (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 

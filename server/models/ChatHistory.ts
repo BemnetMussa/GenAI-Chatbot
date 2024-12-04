@@ -3,14 +3,21 @@ import mongoose, { Schema, Document } from 'mongoose';
 // Interface for a single message
 interface IMessage {
   content: string;
-  sender: string;  // 'user' or 'assistant'
+  sender: string; // 'user' or 'assistant'
   timestamp: Date;
 }
+
+// Interface for a single conversation
+interface IConversation {
+  _id: mongoose.Types.ObjectId;  // Use ObjectId here
+  messages: IMessage[];
+}
+
 
 // Interface for the ChatHistory document
 export interface IChatHistory extends Document {
   userId: mongoose.Types.ObjectId;
-  messages: IMessage[];
+  conversations: IConversation[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,33 +25,37 @@ export interface IChatHistory extends Document {
 const messageSchema = new Schema({
   content: {
     type: String,
-    required: true
+    required: true,
   },
   sender: {
     type: String,
     required: true,
-    enum: ['user', 'assistant']  // Ensures sender can only be 'user' or 'assistant'
+    enum: ['user', 'assistant'], // Only 'user' or 'assistant' allowed
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
-});
-
-const chatHistorySchema = new Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true   
+    default: Date.now,
   },
-  messages: [messageSchema],
-}, {
-  timestamps: true 
 });
 
-// Create a compound index on userId and createdAt for efficient querying
-chatHistorySchema.index({ userId: 1, createdAt: -1 });
+const conversationSchema = new Schema({
+  messages: [messageSchema], // Array of messages
+});
+
+const chatHistorySchema = new Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true, // Index for efficient querying
+    },
+    conversations: [conversationSchema], // Array of conversations
+  },
+  {
+    timestamps: true, // Automatically adds createdAt and updatedAt
+  }
+);
 
 const ChatHistory = mongoose.model<IChatHistory>('ChatHistory', chatHistorySchema);
 

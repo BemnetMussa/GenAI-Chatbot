@@ -112,20 +112,6 @@ router.get('/protected', authMiddleware, (req: Request, res: Response) => {
   res.json({ message: 'User authenticated', userId: req.user.id });
 });
 
-// Get user details
-router.get('/user/:id', async (req: Request, res: Response) => {
-  try {
-    const userId = req.params.id;
-    const user = await User.findById(userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ message: 'Error retrieving user details', error });
-  }
-});
-
 
 
 export { router };
