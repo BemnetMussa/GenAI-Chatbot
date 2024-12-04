@@ -12,22 +12,26 @@ Welcome to the AI Chatbot Application, a powerful web app built using the **MERN
 
 ## **Design Process ✍️**
 
-Before diving into development, I began by creating the  design using **Figma**. Figma allowed me to visually plan the structure of the application.
- <img src="images/Screenshot%2024-12-04%223940.png" width="500" height="500" alt="figma">
-
+Before diving into development, I began by creating the design using **Figma**. Figma allowed me to visually plan the structure of the application.
+<img src="images/Screenshot%202024-12-04%20231103.png" width="500" height="400" alt="figma">
 
 ---
 
 ## **Features ✨**
 - **User Authentication**: Secure sign-up and login functionality to ensure your data is safe. Uses JWT (JSON Web Token) for authentication.
-  <img src="images/Screenshot%202024-12-04%20224247.png" width="500" height="500" alt="Login Screen">
+ 
+  <img src="images/Screenshot%202024-12-04%20224247.png" width="500" height="300" alt="Login Screen">
+
   
 - **Start a New Conversation**: Instantly begin a new conversation with the AI.
-  <img src="images/Screenshot%202024-12-04%20223940.png" width="500" height="500" alt="Start New Conversation">
+  
+  <img src="images/Screenshot%202024-12-04%20223940.png" width="500" height="300" alt="Start New Conversation">
+
   
 - **Real-time AI Chat**: Converse with an AI chatbot powered by the Gemini API. Whether you need help, want to chat, or just need some entertainment, this chatbot is here for you.
 - **Chat History**: Never lose a conversation. You can revisit your previous chats anytime.
-  <img src="images/Screenshot%202024-12-04%20224204.png" width="500" height="500" alt="AI Chat">
+  
+  <img src="images/Screenshot%202024-12-04%20224204.png" width="500" height="300" alt="AI Chat">
 
 ---
 
