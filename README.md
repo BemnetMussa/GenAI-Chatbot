@@ -11,11 +11,20 @@ Welcome to the AI Chatbot Application, a powerful web app built using the **MERN
 
 ## **Features ✨**
 
-- **Real-time AI Chat**: Converse with an AI chatbot powered by the Gemini API. Whether you need help, want to chat, or just need some entertainment, this chatbot is here for you.
 - **User Authentication**: Secure sign-up and login functionality to ensure your data is safe. Use JWT (JSON Web Token) for authentication.
-- **Chat History**: Never lose a conversation. You can revisit your previous chats anytime.
+
+  ![Login Screen](./images/Screenshot-2024-12-04-224247.png)  <!-- Example image -->
+
 - **Start a New Conversation**: Instantly begin a new conversation with the AI.
-- **Responsive Design**: The app is mobile-friendly and will work great on both small and large screens.
+
+  ![Start New Conversation](./images/Screenshot-2024-12-04-223940.png)  <!-- Example image -->
+
+- **Real-time AI Chat**: Converse with an AI chatbot powered by the Gemini API. Whether you need help, want to chat, or just need some entertainment, this chatbot is here for you.
+- **Chat History**: Never lose a conversation. You can revisit your previous chats anytime.
+
+  ![AI Chat](./images/Screenshot-2024-12-04-224204.png)  <!-- Example image -->
+  
+
 
 ## **Technologies 🛠️**
 
